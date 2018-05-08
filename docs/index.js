@@ -5,65 +5,126 @@ const elementSize = 20;
 
 class Snake {
   constructor() {
-    this.state = {
-      velocity: {
-        x: 0,
-        y: 0
-      },
-      position: {
-        x: 0,
-        y: 0
-      },
-      apple: {
-        x: 15,
-        y: 15
-      },
-      trail: [],
-      tail: 5
+    this.velocity = {
+      x: 0,
+      y: 0
+    };
+    this.position = {
+      x: 0,
+      y: 0
+    };
+    this.trail = [];
+    this.tail = 5;
+  }
+
+  setVelocity({x, y}) {
+    this.velocity = {x, y};
+  }
+
+  setPosition({x, y}) {
+    this.position = {x, y};
+  }
+
+  getPosition() {
+    return this.position;
+  }
+
+  move() {
+    this.position.x += this.velocity.x;
+    this.position.y += this.velocity.y;
+  }
+
+  draw() {
+    context.fillStyle = "#ffffff";
+
+    this.trail.forEach(({x, y}) => {
+      context.fillRect(x * elementSize, y * elementSize, elementSize - 2, elementSize - 2);
+      
+      if (x === this.position.x && y === this.position.y) {
+        this.tail = 5;
+      }
+    });
+  
+    this.trail = [...this.trail, {...this.position}];
+  
+    while (this.trail.length > this.tail) {
+      this.trail.shift();
     }
+  }
+
+  eat() {
+    this.tail++;
+  }
+}
+
+class Apple {
+  constructor() {
+    this.position = {
+      x: 15,
+      y: 15
+    }
+  }
+
+  getPosition() {
+    return this.position;
+  }
+
+  setRandomPosition() {
+    this.position.x = Math.floor(Math.random() * width / elementSize);
+    this.position.y = Math.floor(Math.random() * height / elementSize);
+  }
+
+  draw() {
+    context.fillStyle = "#0d0d0d";
+    context.fillRect(this.position.x * elementSize, this.position.y * elementSize, elementSize - 2, elementSize - 2);
+  }
+}
+
+class Game {
+  constructor() {
+    this.snake = new Snake();
+    this.apple = new Apple();
 
     this.handleKeydown = this.handleKeydown.bind(this);
     this.run = this.run.bind(this);
 
-    this.startGame();
+    this.start();
   }
 
   handleKeydown(e) {
     switch(e.keyCode) {
       case 37:
-        this.state.velocity.x = -1;
-        this.state.velocity.y = 0;
+        this.snake.setVelocity({x: -1, y: 0});
         break;
       case 38:
-        this.state.velocity.x = 0;
-        this.state.velocity.y = -1;
+        this.snake.setVelocity({x: 0, y: -1});
         break;
       case 39:
-        this.state.velocity.x = 1;
-        this.state.velocity.y = 0;
+      this.snake.setVelocity({x: 1, y: 0});
         break;
       case 40:
-        this.state.velocity.x = 0;
-        this.state.velocity.y = 1;
+      this.snake.setVelocity({x: 0, y: 1});
         break;
     }
   }
 
   changePosition() {
-    if (this.state.position.x < 0) {
-      this.state.position.x = width / elementSize - 1;
+    const {x, y} = this.snake.getPosition();
+
+    if (x < 0) {
+      this.snake.setPosition({x: width / elementSize - 1, y});
     }
   
-    if (this.state.position.x > width / elementSize - 1) {
-      this.state.position.x = 0;
+    if (x > width / elementSize - 1) {
+      this.snake.setPosition({x: 0, y});
     }
   
-    if (this.state.position.y < 0) {
-      this.state.position.y = width / elementSize - 1;
+    if (y < 0) {
+      this.snake.setPosition({x, y: width / elementSize - 1});
     }
   
-    if (this.state.position.y > height / elementSize - 1) {
-      this.state.position.y = 0;
+    if (y > height / elementSize - 1) {
+      this.snake.setPosition({x, y: 0});
     }
   }
 
@@ -72,49 +133,30 @@ class Snake {
     context.fillRect(0, 0, width, height);
   }
 
-  drawSnake() {
-    context.fillStyle = "#ffffff";
+  checkApple() {
+    const applePosition = this.apple.getPosition();
+    const snakePosition = this.snake.getPosition();
 
-    this.state.trail.forEach(({x, y}) => {
-      context.fillRect(x * elementSize, y * elementSize, elementSize - 2, elementSize - 2);
-      
-      if (x === this.state.position.x && y === this.state.position.y) {
-        this.state.tail = 5;
-      }
-    });
-  
-    this.state.trail = [...this.state.trail, {...this.state.position}];
-  
-    while (this.state.trail.length > this.state.tail) {
-      this.state.trail.shift();
-    }
-  }
-
-  drawApple() {
-    if (this.state.apple.x === this.state.position.x && this.state.apple.y === this.state.position.y) {
-      this.state.tail++;
-      this.state.apple.x = Math.floor(Math.random() * width / elementSize);
-      this.state.apple.y = Math.floor(Math.random() * height / elementSize);
+    if (applePosition.x === snakePosition.x && applePosition.y === snakePosition.y) {
+      this.snake.eat();
+      this.apple.setRandomPosition();
     }
   
-    context.fillStyle = "#0d0d0d";
-    context.fillRect(this.state.apple.x * elementSize, this.state.apple.y * elementSize, elementSize - 2, elementSize - 2);
+    this.apple.draw();
   };
 
   run() {
-    this.state.position.x += this.state.velocity.x;
-    this.state.position.y += this.state.velocity.y;
-  
+    this.snake.move();
     this.changePosition();
     this.drawBackground();
-    this.drawSnake();
-    this.drawApple();
+    this.snake.draw();
+    this.checkApple();
   }
 
-  startGame() {
+  start() {
     document.addEventListener("keydown", this.handleKeydown);
     setInterval(this.run, 1000/15);
   }
 }
 
-new Snake();
+new Game();
